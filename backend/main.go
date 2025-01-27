@@ -43,10 +43,12 @@ func main() {
 
 	saveKeyVal("42", "28")
 
-	fs := http.FileServer(http.Dir("./frontend/static"))
+	fs := http.FileServer(http.Dir("./frontend"))
 	http.Handle("/", fs)
 
 	http.HandleFunc("/ws", handleConnection)
+
+	http.Handle("./frontend/assets", http.StripPrefix("./frontend/assets", http.FileServer(http.Dir("./frontend/assets"))))
 
 	port := ":8080"
 	fmt.Printf("Starting server on %s\n", port)
