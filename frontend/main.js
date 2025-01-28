@@ -40,15 +40,17 @@ socket.onmessage = (event) => {
     if (data.type !== undefined) {
         switch (data.type) {
             case "pl_init":
-                const sprite = PIXI.Sprite.from('./assets/circle.png')
-                sprite.x = data.x
-                sprite.y = data.y
-                sprite.anchor.set(0.5)
-                app.stage.addChild(sprite)
-    
-                playerSprites[data.id] = sprite;
-    
-                console.log(`Player ${data.id} added at position: (${data.x}, ${data.y})`)
+                if (!playerSprites[data.id]) {
+                    const sprite = PIXI.Sprite.from('./assets/circle.png')
+                    sprite.x = data.x
+                    sprite.y = data.y
+                    sprite.anchor.set(0.5)
+                    app.stage.addChild(sprite)
+
+                    playerSprites[data.id] = sprite;
+
+                    console.log(`Player ${data.id} added at position: (${data.x}, ${data.y})`)
+                }
                 break
 
             case "pl_del":

@@ -23,6 +23,20 @@ func handleConnection(writer http.ResponseWriter, reader *http.Request) {
 	}
 	defer connectionHandler.Close()
 
+	for client := range rdb.ClientSockets {
+		log.Println(client)
+		x, y, err := rdb.GetPlayerPosition(client)
+		if err != nil {
+			log.Println("Get error: ", err)
+			continue
+		}
+		msg := []byte(fmt.Sprintf(`{"type": "pl_init", "id": "%s", "x": %d, "y": %d}`, client, x, y))
+		if err := connectionHandler.WriteMessage(websocket.TextMessage, msg); err != nil {
+			log.Println("Write error: ", err)
+			break
+		}
+	}
+
 	playerObj := game.InitPlayer()
 
 	rdb.AddPlayerSocket(playerObj.ID, connectionHandler)
@@ -43,7 +57,6 @@ func handleConnection(writer http.ResponseWriter, reader *http.Request) {
 			}
 		} else {
 			log.Printf("Message received: %s\n", msg)
-			return
 		}
 	}
 }

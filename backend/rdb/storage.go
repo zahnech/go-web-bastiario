@@ -14,7 +14,7 @@ import (
 var (
 	ctx                = context.Background()
 	db                 *redis.Client
-	clientSockets      map[string]*websocket.Conn
+	ClientSockets      map[string]*websocket.Conn
 	clientSocketsMutex sync.Mutex
 )
 
@@ -23,7 +23,7 @@ func InitRedis() {
 		Addr: "localhost:6379",
 	})
 
-	clientSockets = make(map[string]*websocket.Conn)
+	ClientSockets = make(map[string]*websocket.Conn)
 
 	if _, err := db.Ping(ctx).Result(); err != nil {
 		log.Fatal("!@#$% Redis connection failed: ", err)
@@ -36,14 +36,14 @@ func AddPlayerSocket(id string, socket *websocket.Conn) {
 	clientSocketsMutex.Lock()
 	defer clientSocketsMutex.Unlock()
 
-	clientSockets[id] = socket
+	ClientSockets[id] = socket
 }
 
 func DelPlayerSocket(id string) {
 	clientSocketsMutex.Lock()
 	defer clientSocketsMutex.Unlock()
 
-	delete(clientSockets, id)
+	delete(ClientSockets, id)
 }
 
 func publishMessage(channel string, message string) {
@@ -65,12 +65,12 @@ func SubscribeToChannel(channel string) {
 		}
 		log.Printf("Received message from channel %s: %s", msg.Channel, msg.Payload)
 
-		for client, socket := range clientSockets {
+		for client, socket := range ClientSockets {
 			err := socket.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
 			if err != nil {
 				log.Printf("Error sending message to client: %v", err)
 				socket.Close()
-				delete(clientSockets, client)
+				delete(ClientSockets, client)
 			}
 		}
 	}
