@@ -8,21 +8,13 @@ const app = new PIXI.Application({
 })
 document.body.appendChild(app.view)
 
-const sprite = PIXI.Sprite.from('./assets/circle.png')
-sprite.x = 300
-sprite.y = 300
-sprite.anchor.set(0.5)
-app.stage.addChild(sprite)
+const playerSprites = {};
 
 const socket = new WebSocket("ws://localhost:8080/ws")
 
 time = 0
 
 app.ticker.add((delta) => {
-    sprite.rotation += 0.01 * delta
-
-    sprite.x += Math.sin(app.ticker.lastTime / 1000) * 2 * delta
-
     time += 0.01
 
     const red = Math.abs(Math.sin(time + 0))
@@ -44,7 +36,38 @@ socket.onopen = () => {
 };
 
 socket.onmessage = (event) => {
-    console.log("Received message from server:", event.data)
+    const data = JSON.parse(event.data);
+    if (data.type !== undefined) {
+        switch (data.type) {
+            case "pl_init":
+                const sprite = PIXI.Sprite.from('./assets/circle.png')
+                sprite.x = data.x
+                sprite.y = data.y
+                sprite.anchor.set(0.5)
+                app.stage.addChild(sprite)
+    
+                playerSprites[data.id] = sprite;
+    
+                console.log(`Player ${data.id} added at position: (${data.x}, ${data.y})`)
+                break
+
+            case "pl_del":
+                if (playerSprites[data.id]) {
+                    app.stage.removeChild(playerSprites[data.id])
+                    delete playerSprites[data.id]
+                    console.log(`Player ${data.id} removed from the game`)
+                }
+                break
+            
+            case "pl_chng_loc":
+                if (playerSprites[data.id]) {
+                    // add later
+                }
+                break
+        }
+    } else {
+        console.log("Received data:", data);
+    }
 };
 
 socket.onclose = () => {

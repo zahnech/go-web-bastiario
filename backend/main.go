@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"go-web-bastiario/backend/game"
+	"go-web-bastiario/backend/rdb"
 	"log"
+
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -20,28 +23,35 @@ func handleConnection(writer http.ResponseWriter, reader *http.Request) {
 	}
 	defer connectionHandler.Close()
 
-	log.Println("New connection")
+	playerObj := game.InitPlayer()
+
+	rdb.AddPlayerSocket(playerObj.ID, connectionHandler)
+	rdb.InitPlayerPosition(playerObj.ID, playerObj.X, playerObj.Y)
+
+	defer rdb.RemovePlayer(playerObj.ID)
+	defer rdb.DelPlayerSocket(playerObj.ID)
 
 	for {
 		var msg []byte
 		if _, msg, err = connectionHandler.ReadMessage(); err != nil {
-			log.Println("!@#$% Message read error: ", err)
-			return
-		}
-
-		log.Printf("Message received: %s\n", msg)
-
-		if err := connectionHandler.WriteMessage(websocket.TextMessage, msg); err != nil {
-			log.Println("!@#$% Message write error: ", err)
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseAbnormalClosure) {
+				log.Printf("Player %v disconnected\n", playerObj.ID)
+				return
+			} else {
+				log.Printf("Message read error from player %v: %v", playerObj.ID, err)
+				return
+			}
+		} else {
+			log.Printf("Message received: %s\n", msg)
 			return
 		}
 	}
 }
 
 func main() {
-	initRedis()
+	rdb.InitRedis()
 
-	saveKeyVal("42", "28")
+	go rdb.SubscribeToChannel("game_updates")
 
 	fs := http.FileServer(http.Dir("./frontend"))
 	http.Handle("/", fs)
